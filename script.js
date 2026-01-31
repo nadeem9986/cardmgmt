@@ -145,12 +145,11 @@ function displayExtractResults(data) {
             <div class="result-value">${data.due_date}</div>
         </div>
     `;
-    extractResult.style.display = 'block';
 
-    // Smooth scroll to results
-    setTimeout(() => {
-        extractResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 100);
+    // Hide placeholder and show results
+    const placeholder = document.getElementById('extractPlaceholder');
+    if (placeholder) placeholder.style.display = 'none';
+    extractResult.style.display = 'block';
 }
 
 function showExtractError(message) {
@@ -309,8 +308,14 @@ function displayAnalyzeResults(data) {
         </div>
     `;
 
-    // Category Breakdown
-    html += '<h4 style="margin-bottom: 1rem; font-size: 1.25rem;">📊 Category Breakdown</h4>';
+    // Category Breakdown with Chart
+    html += `
+        <h4 style="margin-bottom: 1.5rem; font-size: 1.25rem;">📊 Category Breakdown</h4>
+        <div style="max-width: 400px; margin: 0 auto 2rem auto; padding: 1.5rem; background: rgba(255, 255, 255, 0.03); border-radius: 20px; border: 1px solid var(--border-color);">
+            <canvas id="categoryChart"></canvas>
+        </div>
+    `;
+
     data.category_breakdown.forEach(cat => {
         html += `
             <div class="category-card">
@@ -389,18 +394,377 @@ function displayAnalyzeResults(data) {
         </div>
     `;
 
+    // Export Buttons
+    html += `
+        <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap;">
+            <button onclick="exportToPDF(${JSON.stringify(data).replace(/"/g, '&quot;')})" class="export-btn export-pdf-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                Download PDF Report
+            </button>
+            <button onclick="exportChartAsPNG()" class="export-btn export-chart-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+                Download Chart (PNG)
+            </button>
+        </div>
+    `;
+
     analyzeResultContent.innerHTML = html;
+
+    // Hide placeholder and show results
+    const placeholder = document.getElementById('analyzePlaceholder');
+    if (placeholder) placeholder.style.display = 'none';
     analyzeResult.style.display = 'block';
+
+    // Create the donut chart
+    setTimeout(() => {
+        createCategoryChart(data.category_breakdown);
+        animateProgressBars();
+    }, 100);
 
     // Smooth scroll to results
     setTimeout(() => {
         analyzeResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 100);
+    }, 200);
 }
 
 function showAnalyzeError(message) {
     analyzeError.textContent = `❌ Error: ${message}`;
     analyzeError.style.display = 'block';
+}
+
+// ============================================================================
+// CHART VISUALIZATION FUNCTIONS
+// ============================================================================
+
+let categoryChart = null;
+
+/**
+ * Create a beautiful donut chart for category breakdown
+ */
+function createCategoryChart(categories) {
+    const canvas = document.getElementById('categoryChart');
+    if (!canvas) return;
+
+    // Destroy existing chart if it exists
+    if (categoryChart) {
+        categoryChart.destroy();
+    }
+
+    // Apple-inspired color palette
+    const colors = [
+        '#007AFF', // Blue
+        '#5856D6', // Indigo
+        '#AF52DE', // Purple
+        '#FF2D55', // Pink
+        '#FF9500', // Orange
+        '#34C759', // Green
+        '#5AC8FA', // Teal
+        '#FF3B30', // Red
+    ];
+
+    const labels = categories.map(cat => cat.category);
+    const data = categories.map(cat => cat.amount);
+    const backgroundColors = colors.slice(0, categories.length);
+
+    categoryChart = new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColors,
+                borderColor: 'rgba(0, 0, 0, 0.8)',
+                borderWidth: 2,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#ffffff',
+                        font: {
+                            family: "'Inter', sans-serif",
+                            size: 13,
+                            weight: '500'
+                        },
+                        padding: 16,
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: true,
+                    callbacks: {
+                        label: function (context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: INR ${value.toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            animation: {
+                animateRotate: true,
+                animateScale: true,
+                duration: 1000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+}
+
+/**
+ * Create animated progress bars for categories
+ */
+function animateProgressBars() {
+    const progressBars = document.querySelectorAll('.progress-fill');
+    progressBars.forEach((bar, index) => {
+        const targetWidth = bar.style.width;
+        bar.style.width = '0%';
+        setTimeout(() => {
+            bar.style.width = targetWidth;
+        }, 100 + (index * 100));
+    });
+}
+
+// ============================================================================
+// EXPORT FUNCTIONS
+// ============================================================================
+
+/**
+ * Export analysis results as PDF
+ */
+async function exportToPDF(data) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+
+    // Page dimensions
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    let yPos = margin;
+
+    // Helper function to add new page if needed
+    const checkPageBreak = (height) => {
+        if (yPos + height > pageHeight - margin) {
+            doc.addPage();
+            yPos = margin;
+            return true;
+        }
+        return false;
+    };
+
+    // Header with gradient background (simulated)
+    doc.setFillColor(0, 122, 255);
+    doc.rect(0, 0, pageWidth, 40, 'F');
+
+    // Title
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Credit Card Analysis Report', margin, 25);
+
+    // Date
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, margin, 33);
+
+    yPos = 50;
+
+    // Statement Summary Section
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('📊 Statement Summary', margin, yPos);
+    yPos += 10;
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Debits: INR ${data.statement_summary.total_debits.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, margin, yPos);
+    yPos += 7;
+    doc.text(`Total Credits: INR ${data.statement_summary.total_credits.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, margin, yPos);
+    yPos += 7;
+    doc.text(`Closing Balance: INR ${data.statement_summary.closing_balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, margin, yPos);
+    yPos += 15;
+
+    // Capture chart as image
+    checkPageBreak(80);
+    const canvas = document.getElementById('categoryChart');
+    if (canvas) {
+        try {
+            const chartImage = canvas.toDataURL('image/png');
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'bold');
+            doc.text('📈 Category Breakdown Chart', margin, yPos);
+            yPos += 10;
+
+            const imgWidth = pageWidth - (2 * margin);
+            const imgHeight = 80;
+            doc.addImage(chartImage, 'PNG', margin, yPos, imgWidth, imgHeight);
+            yPos += imgHeight + 15;
+        } catch (error) {
+            console.error('Error adding chart to PDF:', error);
+        }
+    }
+
+    // Category Breakdown Table
+    checkPageBreak(20);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('💳 Category Details', margin, yPos);
+    yPos += 10;
+
+    doc.setFontSize(10);
+    data.category_breakdown.forEach((cat, index) => {
+        checkPageBreak(15);
+
+        // Alternating row colors
+        if (index % 2 === 0) {
+            doc.setFillColor(245, 245, 247);
+            doc.rect(margin, yPos - 5, pageWidth - (2 * margin), 12, 'F');
+        }
+
+        doc.setFont('helvetica', 'bold');
+        doc.text(cat.category, margin + 5, yPos);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`INR ${cat.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${cat.percentage.toFixed(1)}%)`, pageWidth - margin - 60, yPos);
+        yPos += 12;
+    });
+
+    yPos += 10;
+
+    // Reduction Target
+    checkPageBreak(40);
+    doc.setFillColor(0, 122, 255);
+    doc.rect(margin, yPos - 5, pageWidth - (2 * margin), 35, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('🎯 Reduction Target', margin + 5, yPos + 5);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    yPos += 15;
+    doc.text(`Current: INR ${data.reduction_target.current_spending.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, margin + 5, yPos);
+    doc.text(`Target: ${data.reduction_target.reduction_percentage}%`, pageWidth / 2, yPos);
+    yPos += 7;
+    doc.text(`New Target: INR ${data.reduction_target.target_spending.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, margin + 5, yPos);
+    doc.text(`Save: INR ${data.reduction_target.amount_to_save.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, pageWidth / 2, yPos);
+
+    yPos += 20;
+    doc.setTextColor(0, 0, 0);
+
+    // Recommendations
+    checkPageBreak(20);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('💡 AI Recommendations', margin, yPos);
+    yPos += 10;
+
+    doc.setFontSize(10);
+    data.recommendations.forEach((rec, index) => {
+        checkPageBreak(30);
+
+        // Recommendation box
+        doc.setFillColor(175, 82, 222);
+        doc.rect(margin, yPos - 5, pageWidth - (2 * margin), 8, 'F');
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${rec.category} (-${rec.reduction_percentage}%)`, margin + 5, yPos);
+        yPos += 10;
+
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Current: INR ${rec.current_spending.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, margin + 5, yPos);
+        yPos += 6;
+        doc.text(`Save: INR ${rec.amount_to_save.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, margin + 5, yPos);
+        yPos += 6;
+        doc.text(`New Target: INR ${rec.new_spending.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, margin + 5, yPos);
+        yPos += 8;
+
+        // Advice text (word wrap)
+        const adviceLines = doc.splitTextToSize(rec.advice, pageWidth - (2 * margin) - 10);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'italic');
+        adviceLines.forEach(line => {
+            checkPageBreak(6);
+            doc.text(line, margin + 5, yPos);
+            yPos += 5;
+        });
+
+        yPos += 10;
+    });
+
+    // Total Savings Summary
+    checkPageBreak(25);
+    doc.setFillColor(52, 199, 89);
+    doc.rect(margin, yPos - 5, pageWidth - (2 * margin), 20, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('🎉 Total Projected Savings', margin + 5, yPos + 5);
+    doc.setFontSize(18);
+    doc.text(`INR ${data.total_projected_savings.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, margin + 5, yPos + 15);
+
+    // Footer
+    doc.setTextColor(150, 150, 150);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Generated by Credit Card AI Analyzer', pageWidth / 2, pageHeight - 10, { align: 'center' });
+
+    // Save PDF
+    doc.save(`credit-card-analysis-${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
+/**
+ * Export chart as PNG image
+ */
+async function exportChartAsPNG() {
+    const canvas = document.getElementById('categoryChart');
+    if (!canvas) {
+        alert('No chart available to export');
+        return;
+    }
+
+    try {
+        // Convert canvas to blob
+        canvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `spending-chart-${new Date().toISOString().split('T')[0]}.png`;
+            link.click();
+            URL.revokeObjectURL(url);
+        });
+    } catch (error) {
+        console.error('Error exporting chart:', error);
+        alert('Failed to export chart. Please try again.');
+    }
 }
 
 // ============================================================================

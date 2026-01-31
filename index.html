@@ -1,20 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="AI-powered credit card statement analysis and spending reduction recommendations">
     <title>Credit Card AI Analyzer | Smart Spending Insights</title>
-    
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
     <!-- Stylesheet -->
     <link rel="stylesheet" href="style.css">
+
+    <!-- Chart.js for Data Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- jsPDF for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- html2canvas for Chart Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
+
 <body>
+    <!-- SVG Liquid Glass Filter -->
+    <svg xmlns="http://www.w3.org/2000/svg" role="presentation" style="display: none">
+        <filter id="glass-distortion" x="0%" y="0%" width="100%" height="100%" filterUnits="objectBoundingBox">
+            <feTurbulence type="fractalNoise" baseFrequency="0.001 0.005" numOctaves="1" seed="17"
+                result="turbulence" />
+            <feComponentTransfer in="turbulence" result="mapped">
+                <feFuncR type="gamma" amplitude="1" exponent="10" offset="0.5" />
+                <feFuncG type="gamma" amplitude="0" exponent="1" offset="0" />
+                <feFuncB type="gamma" amplitude="0" exponent="1" offset="0.5" />
+            </feComponentTransfer>
+            <feGaussianBlur in="turbulence" stdDeviation="3" result="softMap" />
+            <feSpecularLighting in="softMap" surfaceScale="5" specularConstant="1" specularExponent="100"
+                lighting-color="white" result="specLight">
+                <fePointLight x="-200" y="-200" z="300" />
+            </feSpecularLighting>
+            <feComposite in="specLight" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="litImage" />
+            <feDisplacementMap in="SourceGraphic" in2="softMap" scale="200" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+    </svg>
+    <!-- End SVG Filter -->
+
     <!-- Hero Section -->
     <header class="hero">
         <div class="hero-content">
@@ -26,7 +59,7 @@
                 Credit Card <span class="gradient-text">AI Analyzer</span>
             </h1>
             <p class="hero-subtitle">
-                Upload your credit card statement and get instant AI-powered insights, 
+                Upload your credit card statement and get instant AI-powered insights,
                 data extraction, and personalized spending reduction recommendations
             </p>
             <div class="hero-stats">
@@ -58,7 +91,8 @@
             <div class="feature-card glass-card">
                 <div class="feature-header">
                     <div class="feature-icon extract-icon">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                             <polyline points="14 2 14 8 20 8"></polyline>
                             <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -68,53 +102,79 @@
                     </div>
                     <div class="feature-title-group">
                         <h2 class="feature-title">Statement Data Extraction</h2>
-                        <p class="feature-description">Extract key information from your credit card statement instantly</p>
+                        <p class="feature-description">Extract key information from your credit card statement instantly
+                        </p>
                     </div>
                 </div>
 
-                <div class="upload-zone" id="extractUploadZone">
-                    <input type="file" id="extractFileInput" accept="image/png,image/jpeg,image/jpg,image/webp" hidden>
-                    <div class="upload-content">
-                        <div class="upload-icon">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="17 8 12 3 7 8"></polyline>
-                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
+                <!-- Two Column Layout -->
+                <div class="two-column-layout">
+                    <!-- Left Column: Upload -->
+                    <div class="left-column">
+                        <div class="upload-zone" id="extractUploadZone">
+                            <input type="file" id="extractFileInput" accept="image/png,image/jpeg,image/jpg,image/webp"
+                                hidden>
+                            <div class="upload-content">
+                                <div class="upload-icon">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="17 8 12 3 7 8"></polyline>
+                                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                                    </svg>
+                                </div>
+                                <h3 class="upload-title">Drop your statement here</h3>
+                                <p class="upload-text">or click to browse</p>
+                                <p class="upload-hint">Supports PNG, JPG, JPEG, WEBP</p>
+                            </div>
+                            <div class="upload-preview" id="extractPreview" style="display: none;">
+                                <img id="extractPreviewImage" alt="Preview">
+                                <button class="remove-btn" id="extractRemoveBtn">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
-                        <h3 class="upload-title">Drop your statement here</h3>
-                        <p class="upload-text">or click to browse</p>
-                        <p class="upload-hint">Supports PNG, JPG, JPEG, WEBP</p>
-                    </div>
-                    <div class="upload-preview" id="extractPreview" style="display: none;">
-                        <img id="extractPreviewImage" alt="Preview">
-                        <button class="remove-btn" id="extractRemoveBtn">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
+
+                        <button class="action-btn primary-btn" id="extractBtn" disabled>
+                            <span class="btn-text">Extract Data</span>
+                            <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"></polyline>
                             </svg>
                         </button>
                     </div>
+
+                    <!-- Right Column: Results -->
+                    <div class="right-column">
+                        <div class="loading-state" id="extractLoading" style="display: none;">
+                            <div class="spinner"></div>
+                            <p>Analyzing your statement with AI...</p>
+                        </div>
+
+                        <div class="result-container" id="extractResult" style="display: none;">
+                            <h3 class="result-title">✅ Extracted Data</h3>
+                            <div class="result-grid" id="extractResultContent"></div>
+                        </div>
+
+                        <div class="error-message" id="extractError" style="display: none;"></div>
+
+                        <!-- Placeholder when no results -->
+                        <div class="results-placeholder" id="extractPlaceholder">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.5" opacity="0.3">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                            </svg>
+                            <p>Upload a statement to see extracted data here</p>
+                        </div>
+                    </div>
                 </div>
-
-                <button class="action-btn primary-btn" id="extractBtn" disabled>
-                    <span class="btn-text">Extract Data</span>
-                    <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                </button>
-
-                <div class="loading-state" id="extractLoading" style="display: none;">
-                    <div class="spinner"></div>
-                    <p>Analyzing your statement with AI...</p>
-                </div>
-
-                <div class="result-container" id="extractResult" style="display: none;">
-                    <h3 class="result-title">✅ Extracted Data</h3>
-                    <div class="result-grid" id="extractResultContent"></div>
-                </div>
-
-                <div class="error-message" id="extractError" style="display: none;"></div>
             </div>
         </section>
 
@@ -123,7 +183,8 @@
             <div class="feature-card glass-card">
                 <div class="feature-header">
                     <div class="feature-icon analyze-icon">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
                             <line x1="12" y1="1" x2="12" y2="23"></line>
                             <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                         </svg>
@@ -138,7 +199,8 @@
                     <input type="file" id="analyzeFileInput" accept="image/png,image/jpeg,image/jpg,image/webp" hidden>
                     <div class="upload-content">
                         <div class="upload-icon">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                 <polyline points="17 8 12 3 7 8"></polyline>
                                 <line x1="12" y1="3" x2="12" y2="15"></line>
@@ -151,7 +213,8 @@
                     <div class="upload-preview" id="analyzePreview" style="display: none;">
                         <img id="analyzePreviewImage" alt="Preview">
                         <button class="remove-btn" id="analyzeRemoveBtn">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
                             </svg>
@@ -161,22 +224,16 @@
 
                 <div class="input-group">
                     <label for="reductionPercentage" class="input-label">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
                             <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
                             <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
                         </svg>
                         Target Reduction Percentage
                     </label>
                     <div class="input-wrapper">
-                        <input 
-                            type="number" 
-                            id="reductionPercentage" 
-                            class="input-field" 
-                            placeholder="e.g., 20" 
-                            min="1" 
-                            max="100"
-                            value="20"
-                        >
+                        <input type="number" id="reductionPercentage" class="input-field" placeholder="e.g., 20" min="1"
+                            max="100" value="20">
                         <span class="input-suffix">%</span>
                     </div>
                     <p class="input-hint">Enter how much you want to reduce your spending (1-100%)</p>
@@ -184,7 +241,8 @@
 
                 <button class="action-btn primary-btn" id="analyzeBtn" disabled>
                     <span class="btn-text">Analyze Spending</span>
-                    <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
                         <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
                 </button>
@@ -219,4 +277,5 @@
     <!-- JavaScript -->
     <script src="script.js"></script>
 </body>
+
 </html>
